@@ -1,16 +1,31 @@
 # S3DirectUpload
 
-[![Build Status](https://travis-ci.org/waynehoover/s3_direct_upload.png)](https://travis-ci.org/waynehoover/s3_direct_upload)
-
-Easily generate a form that allows you to upload directly to Amazon S3.
-Multi file uploading supported by jquery-fileupload.
+Easily generate a form that allows you to upload directly to Amazon S3.  Includes version 9.7.0 of jquery-file-upload.  Uses Bootstrap, Sass, and coffee.  Multi file uploading supported by jquery-fileupload.
 
 Code extracted from Ryan Bates' [gallery-jquery-fileupload](https://github.com/railscasts/383-uploading-to-amazon-s3/tree/master/gallery-jquery-fileupload).
 
 ## Installation
 Add this line to your application's Gemfile:
 
-    gem 's3_direct_upload'
+    gem 's3_direct_upload', :git => 'git://github.com/laertiades/s3_direct_upload.git'
+    
+**application.js** should look like:
+```javascript
+//= require jquery
+//= require jquery-ui
+//= require bootstrap-sprockets
+//= require jquery_ujs
+//= require jquery-fileupload
+//= require_tree .
+```
+
+**application.scss** should look like:
+```sass
+@import "jquery-fileupload";
+@import "bootstrap-sprockets";
+@import "bootstrap";
+@import "jquery-ui";
+```
 
 Then add a new initalizer with your AWS credentials:
 

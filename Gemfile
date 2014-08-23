@@ -6,4 +6,8 @@ gemspec
 # gem 'jquery-fileupload-rails'
 gem 'activesupport'
 gem 'rake'
-
+gem 'sass-rails'
+gem 'coffee-rails'
+gem 'jquery-rails'
+gem 'jquery-ui-rails'
+gem 'bootstrap-sass'
