@@ -222,10 +222,6 @@ jQuery ->
     path: 'path/to/my/files/on/s3'
     additional_data: {key: 'value'}
 ```
-### Example with single file upload bar without script template
-
-
-
 
 ### Public methods
 You can change the settings on your form later on by accessing the jQuery instance:
@@ -239,13 +235,6 @@ jQuery ->
 ```
 
 ### Javascript Events Hooks
-
-#### First upload started
-`s3_uploads_start` is fired once when any batch of uploads is starting.
-```coffeescript
-$('#myS3Uploader').bind 's3_uploads_start', (e) ->
-  alert("Uploads have started")
-```
 
 #### Successfull upload
 When a file has been successfully uploaded to S3, the `s3_upload_complete` is triggered on the form. A `content` object is passed along with the following attributes :
@@ -329,10 +318,10 @@ Ideas:
 * Model methods.
 * Model method to delete files from s3
 
-
 ## Credit
+This gem is forked from [Wayne Hoover](https://github.com/waynehoover/s3_direct_upload).
 This gem is basically a small wrapper around code that [Ryan Bates](http://github.com/rbates) wrote for [Railscast#383](http://railscasts.com/episodes/383-uploading-to-amazon-s3). Most of the code in this gem was extracted from [gallery-jquery-fileupload](https://github.com/railscasts/383-uploading-to-amazon-s3/tree/master/gallery-jquery-fileupload).
 
-Thank you Ryan Bates!
+Thank you Ryan Bates and Wayne Hoover
 
-This code also uses the excellecnt [jQuery-File-Upload](https://github.com/blueimp/jQuery-File-Upload), which is included in this gem by its rails counterpart [jquery-fileupload-rails](https://github.com/tors/jquery-fileupload-rails)
+This code also uses the excellecnt [jQuery-File-Upload](https://github.com/blueimp/jQuery-File-Upload), which is included in this gem
