@@ -1,6 +1,6 @@
 # S3DirectUpload
 
-Easily generate a form that allows you to upload directly to Amazon S3.  Includes version 9.7.0 of jquery-file-upload.  Uses Bootstrap, Sass, and coffee.  Multi file uploading supported by jquery-fileupload.
+Rails implementation of version 9.7.0 of jquery-file-upload for use with AWS S3.  Supports Basic-Plus-UI.  Uses Bootstrap, Sass, and Coffeescript.
 
 Code extracted from Ryan Bates' [gallery-jquery-fileupload](https://github.com/railscasts/383-uploading-to-amazon-s3/tree/master/gallery-jquery-fileupload).
 
@@ -16,6 +16,7 @@ Add this line to your application's Gemfile:
 //= require bootstrap-sprockets
 //= require jquery_ujs
 //= require jquery-fileupload
+//= require s3_direct_upload
 //= require_tree .
 ```
 
@@ -55,24 +56,89 @@ Make sure your AWS S3 CORS settings for your bucket look something like this:
 ```
 In production the AllowedOrigin key should be your domain.
 
-Add the following js and css to your asset pipeline:
-
-**application.js.coffee**
-```coffeescript
-#= require s3_direct_upload
-```
-
-**application.css**
-```css
-//= require s3_direct_upload_progress_bars
-```
-
 ## Usage
 Create a new view that uses the form helper `s3_uploader_form`:
 ```ruby
-<%= s3_uploader_form callback_url: model_url, callback_param: "model[image_url]", id: "s3-uploader" do %>
-  <%= file_field_tag :file, multiple: true %>
-<% end %>
+<div class="container">
+    <!-- The file upload form used as target for the file upload widget -->
+    <%= s3_uploader_form callback_url: '/beats/create', callback_param: "model[image_url]", id: "s3-uploader" do %>
+        <!-- Redirect browsers with JavaScript disabled to the origin page -->
+        <noscript><input type="hidden" name="redirect" value="http://example.com"></noscript>
+        <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
+        <div class="row fileupload-buttonbar">
+            <div class="col-lg-7">
+                <!-- The fileinput-button span is used to style the file input field as button -->
+                <span class="btn btn-success fileinput-button">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    <span>Add files...</span>
+                    <input type="file" name="file" multiple>
+                </span>
+                <button type="submit" class="btn btn-primary start">
+                    <i class="glyphicon glyphicon-upload"></i>
+                    <span>Start upload</span>
+                </button>
+                <button type="reset" class="btn btn-warning cancel">
+                    <i class="glyphicon glyphicon-ban-circle"></i>
+                    <span>Cancel upload</span>
+                </button>
+                <button type="button" class="btn btn-danger delete">
+                    <i class="glyphicon glyphicon-trash"></i>
+                    <span>Delete</span>
+                </button>
+                <input type="checkbox" class="toggle">
+                <!-- The global file processing state -->
+                <span class="fileupload-process"></span>
+            </div>
+            <!-- The global progress state -->
+            <div class="col-lg-5 fileupload-progress fade">
+                <!-- The global progress bar -->
+                <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar progress-bar-success" style="width:0%;"></div>
+                </div>
+                <!-- The extended global progress state -->
+                <div class="progress-extended">&nbsp;</div>
+            </div>
+        </div>
+        <!-- The table listing the files available for upload/download -->
+        <table role="presentation" class="table table-striped"><tbody class="files"></tbody></table>
+    <% end %>
+    <br>
+</div>
+<!-- The template to display files available for upload -->
+<script id="template-upload" type="text/x-tmpl">
+{% for (var i=0, file; file=o.files[i]; i++) { %}
+    <tr class="template-upload fade">
+        <td>
+            <span class="preview"></span>
+        </td>
+        <td>
+            <p class="name">{%=file.name%}</p>
+            <strong class="error text-danger"></strong>
+        </td>
+        <td>
+            <p class="size">Processing...</p>
+            <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar progress-bar-success" style="width:0%;"></div></div>
+        </td>
+        <td>
+            {% if (!i && !o.options.autoUpload) { %}
+                <button class="btn btn-primary start" disabled>
+                    <i class="glyphicon glyphicon-upload"></i>
+                    <span>Start</span>
+                </button>
+            {% } %}
+            {% if (!i) { %}
+                <button class="btn btn-warning cancel">
+                    <i class="glyphicon glyphicon-ban-circle"></i>
+                    <span>Cancel</span>
+                </button>
+            {% } %}
+        </td>
+    </tr>
+{% } %}
+</script>
+<!-- The template to display files available for download -->
+<script id="template-download" type="text/x-tmpl">
+</script>
 ```
 
 Note: Its required that the file_field_tag is named 'file'.
@@ -81,16 +147,6 @@ Then in your application.js.coffee, call the S3Uploader jQuery plugin on the ele
 ```coffeescript
 jQuery ->
   $("#s3-uploader").S3Uploader()
-```
-
-Optionally, you can also place this template in the same view for the progress bars:
-```js+erb
-<script id="template-upload" type="text/x-tmpl">
-<div id="file-{%=o.unique_id%}" class="upload">
-  {%=o.name%}
-  <div class="progress"><div class="bar" style="width: 0%"></div></div>
-</div>
-</script>
 ```
 
 ## Options for form helper
@@ -158,11 +214,6 @@ Use the javascript in `s3_direct_upload` as a guide.
   Note: Your path MUST start with the option you put in your form builder for `key_starts_with`, or else you will get S3 permission errors. The file path in your s3 bucket will be `path + key`.
 * `additional_data:` You can send additional data to your rails app in the persistence POST request. This would be accessible in your params hash as  `params[:key][:value]`
   Example: `{key: value}`
-* `remove_completed_progress_bar:` By default, the progress bar will be removed once the file has been successfully uploaded. You can set this to `false` if you want to keep the progress bar.
-* `remove_failed_progress_bar:` By default, the progress bar will not be removed when uploads fail. You can set this to `true` if you want to remove the progress bar.
-* `before_add:` Callback function that executes before a file is added to the queue. It is passed file object and expects `true` or `false` to be returned. This could be useful if you would like to validate the filenames of files to be uploaded for example. If true is returned file will be uploaded as normal, false will cancel the upload.
-* `progress_bar_target:` The jQuery selector for the element where you want the progress bars to be appended to. Default is the form element.
-* `click_submit_target:` The jQuery selector for the element you wish to add a click handler to do the submitting instead of submiting on file open.
 
 ### Example with all options
 ```coffeescript
@@ -170,31 +221,8 @@ jQuery ->
   $("#myS3Uploader").S3Uploader
     path: 'path/to/my/files/on/s3'
     additional_data: {key: 'value'}
-    remove_completed_progress_bar: false
-    before_add: myCallBackFunction # must return true or false if set
-    progress_bar_target: $('.js-progress-bars')
-    click_submit_target: $('.submit-target')
 ```
 ### Example with single file upload bar without script template
-
-This demonstrates how to use progress_bar_target and allow_multiple_files (only works with false option - single file) to show only one progress bar without script template.
-
-```coffeescript
-jQuery ->
-  $("#myS3Uploader").S3Uploader
-    progress_bar_target: $('.js-progress-bars')
-    allow_multiple_files: false
-```
-
-Target for progress bar
-
-```html
-<div class="upload js-progress-bars">
-  <div class="progress">
-    <div class="bars"> </div>
-  </div>
-</div>
-```
 
 
 
@@ -232,13 +260,6 @@ This hook could be used for example to fill a form hidden field with the returne
 ```coffeescript
 $('#myS3Uploader').bind "s3_upload_complete", (e, content) ->
   $('#someHiddenField').val(content.url)
-```
-
-#### Failed upload
-When an error occured during the transferm the `s3_upload_failed` is triggered on the form with the same `content` object is passed for the successful upload with the addition of the `error_thrown` attribute. The most basic way to handle this error would be to display an alert message to the user in case the upload fails :
-```coffeescript
-$('#myS3Uploader').bind "s3_upload_failed", (e, content) ->
-  alert("#{content.filename} failed to upload : #{content.error_thrown}")
 ```
 
 #### All uploads completed
