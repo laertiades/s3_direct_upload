@@ -6,8 +6,10 @@ Rails implementation of version 9.7.0 of jquery-file-upload for use with AWS S3.
 Code extracted from Ryan Bates' [gallery-jquery-fileupload](https://github.com/railscasts/383-uploading-to-amazon-s3/tree/master/gallery-jquery-fileupload).
 
 ## Installation
-Add this line to your application's Gemfile:
+Add these lines to your application's Gemfile:
 
+    gem 'jquery-ui-rails'
+    gem 'bootstrap-sass', '~> 3.2.0'
     gem 's3_direct_upload', :git => 'git://github.com/laertiades/s3_direct_upload.git'
     
 **application.js** should look like:
