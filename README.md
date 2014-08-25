@@ -1,4 +1,5 @@
 # S3DirectUpload
+[demo](https://github.com/laertiades/fileuploader_demo)
 
 Rails implementation of version 9.7.0 of jquery-file-upload for use with AWS S3.  Supports Basic-Plus-UI.  Uses Bootstrap, Sass, and Coffeescript.
 
