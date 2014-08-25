@@ -208,13 +208,138 @@ Reference the [API](https://github.com/blueimp/jQuery-File-Upload/wiki/API) for 
   Note: Your path MUST start with the option you put in your form builder for `key_starts_with`, or else you will get S3 permission errors. The file path in your s3 bucket will be `path + key`.
 * `additional_data:` You can send additional data to your rails app in the persistence POST request. This would be accessible in your params hash as  `params[:key][:value]`
   Example: `{key: value}`
+* `fileuploadSettings:` Gives you access to the underlying fileupload API
 
-### Example with all options
+### Example with multiple forms and single file input
+
+```haml
+#track-container
+  %h3 Select Track
+  = s3_uploader_form callback_url: '/beats/create', callback_param: "model[image_url]", id: "track-uploader" do
+    %noscript
+      %input{ :type => "hidden", :name => "redirect", :value => "http://blueimp.github.io/jQuery-File-Upload/" }
+    %div.row.fileupload-buttonbar
+      %div.col-lg-7
+        %span.btn.btn-success.fileinput-button
+          %i.glyphicon.glyphicon-plus
+          %span Add files...
+          %input{ :type => "file", :name => "file" }
+        %button.btn.btn-primary.start{ :type => "submit" }
+          %i.glyphicon.glyphicon-upload
+          %span Start upload
+        %span.fileupload-process
+        %div.col-lg-5.fileupload-progress.fade
+          %div.progress.progress-striped.active{ :role => "progressbar", "aria-valuemin" => "0", "aria-valuemax" => "100" }
+            %div.progress-bar.progress-bar-success{ :style => "width:0%;" }
+          %div.progress-extended &nbsp;
+        %table.table.table-striped{ :role => "presentation" }
+          %tbody.files
+    %br
+:plain
+  <script id="track-upload" type="text/x-tmpl">
+  {% for (var i=0, file; file=o.files[i]; i++) { %}
+      <tr class="template-upload fade">
+          <td><span class="preview"></span></td>
+          <td>
+              <p class="name">{%=file.name%}</p>
+              <strong class="error text-danger"></strong>
+          </td>
+          <td>
+              <p class="size">Processing...</p>
+              <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar progress-bar-success" style="width:0%;"></div></div>
+          </td>
+          <td>
+              {% if (!i && !o.options.autoUpload) { %}
+                  <button class="btn btn-primary start" disabled>
+                      <i class="glyphicon glyphicon-upload"></i>
+                      <span>Start</span>
+                  </button>
+              {% } %}
+              {% if (!i) { %}
+                  <button class="btn btn-warning cancel">
+                      <i class="glyphicon glyphicon-ban-circle"></i>
+                      <span>Cancel</span>
+                  </button>
+              {% } %}
+          </td>
+      </tr>
+  {% } %}
+  </script>
+#stems-container
+  %h3 Select Stems
+  = s3_uploader_form callback_url: '/beats/create', callback_param: "model[image_url]", id: "stems-uploader" do
+    %noscript
+      %input{ :type => "hidden", :name => "redirect", :value => "http://blueimp.github.io/jQuery-File-Upload/" }
+    %div.row.fileupload-buttonbar
+      %div.col-lg-7
+        %span.btn.btn-success.fileinput-button
+          %i.glyphicon.glyphicon-plus
+          %span Add files...
+          %input{ :type => "file", :name => "file", :multiple => true}
+        %button.btn.btn-primary.start{ :type => "submit" }
+          %i.glyphicon.glyphicon-upload
+          %span Start upload
+        %button.btn.btn-warning.cancel{ :type => "reset" }
+          %i.glyphicon.glyphicon-ban-circle
+          %span Cancel upload
+        %span.fileupload-process
+        %div.col-lg-5.fileupload-progress.fade
+          %div.progress.progress-striped.active{ :role => "progressbar", "aria-valuemin" => "0", "aria-valuemax" => "100" }
+            %div.progress-bar.progress-bar-success{ :style => "width:0%;" }
+          %div.progress-extended &nbsp;
+        %table.table.table-striped{ :role => "presentation" }
+          %tbody.files
+    %br
+:plain
+  <script id="stems-upload" type="text/x-tmpl">
+  {% for (var i=0, file; file=o.files[i]; i++) { %}
+      <tr class="template-upload fade">
+          <td><span class="preview"></span></td>
+          <td>
+              <p class="name">{%=file.name%}</p>
+              <strong class="error text-danger"></strong>
+          </td>
+          <td>
+              <p class="size">Processing...</p>
+              <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar progress-bar-success" style="width:0%;"></div></div>
+          </td>
+          <td>
+              {% if (!i && !o.options.autoUpload) { %}
+                  <button class="btn btn-primary start" disabled>
+                      <i class="glyphicon glyphicon-upload"></i>
+                      <span>Start</span>
+                  </button>
+              {% } %}
+              {% if (!i) { %}
+                  <button class="btn btn-warning cancel">
+                      <i class="glyphicon glyphicon-ban-circle"></i>
+                      <span>Cancel</span>
+                  </button>
+              {% } %}
+          </td>
+      </tr>
+  {% } %}
+  </script>
+```
+
 ```coffeescript
-jQuery ->
-  $("#myS3Uploader").S3Uploader
-    path: 'path/to/my/files/on/s3'
-    additional_data: {key: 'value'}
+$ ->
+  form1 = $("#track-uploader").S3Uploader
+    fileuploadSettings:
+      uploadTemplateId: 'track-upload'
+      downloadTemplateId: null
+      url: '/stubs/create'
+      maxNumberOfFiles: 1
+  form1.bind 'fileuploadadd', (e, data)->
+    $('tr.template-upload button.cancel').each ->
+      $(this).click()
+    $('tr.template-upload').remove()
+    
+  form2 = $("#stems-uploader").S3Uploader
+    fileuploadSettings:
+      uploadTemplateId: 'stems-upload'
+      downloadTemplateId: null
+      url: '/stubs/create'
 ```
 
 ### Public methods
@@ -243,13 +368,6 @@ This hook could be used for example to fill a form hidden field with the returne
 ```coffeescript
 $('#myS3Uploader').bind "s3_upload_complete", (e, content) ->
   $('#someHiddenField').val(content.url)
-```
-
-#### All uploads completed
-When all uploads finish in a batch an `s3_uploads_complete` event will be triggered on `document`, so you could do something like:
-```coffeescript
-$(document).bind 's3_uploads_complete', ->
-    alert("All Uploads completed")
 ```
 
 #### Rails AJAX Callbacks
