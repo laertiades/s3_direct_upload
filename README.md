@@ -144,7 +144,7 @@ Create a new view that uses the form helper `s3_uploader_form`:
 </script>
 ```
 
-Note: Its required that the file_field_tag is named 'file'.
+Note: Its required that the file input tag has a name attribute of 'file'.
 
 Then in your application.js.coffee, call the S3Uploader jQuery plugin on the element you created above:
 ```coffeescript
@@ -200,16 +200,7 @@ So that javascript code would be executed after the model instance is created, w
 Note: the POST request to the rails app also includes the following parameters `filesize`, `filetype`, `filename` and `filepath`.
 
 ### Advanced Customizations
-Feel free to override the styling for the progress bars in s3_direct_upload_progress_bars.css, look at the source for inspiration.
-
-Also feel free to write your own js to interface with jquery-file-upload. You might want to do this to do custom validations on the files before it is sent to S3 for example.
-To do this remove `s3_direct_upload` from your application.js and include the necessary jquery-file-upload scripts in your asset pipeline (they are included in this gem automatically):
-```cofeescript
-#= require jquery-fileupload/basic
-#= require jquery-fileupload/vendor/tmpl
-```
-Use the javascript in `s3_direct_upload` as a guide.
-
+Reference the [API](https://github.com/blueimp/jQuery-File-Upload/wiki/API) for a myriad of options
 
 ## Options for S3Upload jQuery Plugin
 
@@ -314,6 +305,7 @@ But IE should still upload your files fine.
 This is just a simple gem that only really provides some javascript and a form helper.
 This gem could go all sorts of ways based on what people want and how people contribute.
 Ideas:
+* Get the Download template working
 * More specs!
 * More options to control file types, ability to batch upload.
 * More convention over configuration on rails side
