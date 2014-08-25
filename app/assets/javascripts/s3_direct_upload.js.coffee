@@ -21,12 +21,18 @@ $.fn.S3Uploader = (options) ->
 
   setUploadForm = ->
   
-    $uploadForm.bind 'fileuploadadd', (e, data)-> #called before the ui add method
+    $uploadForm.bind 'fileuploadfinished', (e, data)=>
+      content = build_content_object $uploadForm, data.files[0], data.result
+      $uploadForm.trigger("s3_uploads_complete", [content])
+
+    $uploadForm.bind 'fileuploadadd', (e, data)=> #called before the ui add method
+      alert "added to #{current_files.length}"
       file = data.files[0]
       file.unique_id = Math.random().toString(36).substr(2,16)
       current_files.push data
 
-    $uploadForm.bind 'fileuploaddone', (e, data)->
+
+    $uploadForm.bind 'fileuploaddone', (e, data)=>
       content = build_content_object $uploadForm, data.files[0], data.result
 
       callback_url = $uploadForm.data('callback-url')
@@ -55,13 +61,14 @@ $.fn.S3Uploader = (options) ->
             return event.result
       $uploadForm.trigger("s3_upload_complete", [content])
       current_files.splice($.inArray(data, current_files), 1) # remove that element from the array
-      $uploadForm.trigger("s3_uploads_complete", [content]) unless current_files.length
+#       $uploadForm.trigger("s3_uploads_complete", [content]) unless current_files.length
       
     $uploadForm.fileupload
     
       dataType: 'xml' #response from s3
       singleFileUploads: true
       paramName: 'file'
+#       maxNumberOfFiles: 1
 
       formData: (form) ->
         data = form.serializeArray()
