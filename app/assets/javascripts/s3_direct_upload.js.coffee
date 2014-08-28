@@ -10,84 +10,16 @@ $.fn.S3Uploader = (options) ->
     return this
 
   $uploadForm = this
-
+  
+  waitingQueue = []
+  
   settings =
-    uploadTemplateId: 'template-upload'
     path: ''
     additional_data: null
-    fileuploadSettings: null
 
   $.extend settings, options
-
-  setUploadForm = ->
-  
-    $uploadForm.bind 'fileuploadadd', (e, data)=> #called before the ui add method
-      file = data.files[0]
-      file.unique_id = Math.random().toString(36).substr(2,16)
-
-    $uploadForm.bind 'fileuploaddone', (e, data)=>
-      content = build_content_object $uploadForm, data.files[0], data.result
-
-      callback_url = $uploadForm.data('callback-url')
-      if callback_url
-        content[$uploadForm.data('callback-param')] = content.url
-
-        $.ajax
-          type: $uploadForm.data('callback-method')
-          url: callback_url
-          data: content
-          beforeSend: ( xhr, settings )       ->
-            event = $.Event('ajax:beforeSend')
-            $uploadForm.trigger(event, [xhr, settings])
-            return event.result
-          complete:   ( xhr, status )         ->
-            event = $.Event('ajax:complete')
-            $uploadForm.trigger(event, [xhr, status])
-            return event.result
-          success:    ( data, status, xhr )   ->
-            event = $.Event('ajax:success')
-            $uploadForm.trigger(event, [data, status, xhr])
-            return event.result
-          error:      ( xhr, status, error )  ->
-            event = $.Event('ajax:error')
-            $uploadForm.trigger(event, [xhr, status, error])
-            return event.result
-      $uploadForm.trigger("s3_upload_complete", [content])
-      
-    $uploadForm.fileupload
-    
-      dataType: 'xml' #response from s3
-      singleFileUploads: true
-      settings.fileuploadSettings
-
-      formData: (form) ->
-        data = form.serializeArray()
-        fileType = ""
-        if "type" of @files[0]
-          fileType = @files[0].type
-        data.push
-          name: "content-type"
-          value: fileType
-
-        key = $uploadForm.data("key")
-          .replace('{timestamp}', new Date().getTime())
-          .replace('{unique_id}', @files[0].unique_id)
-          .replace('{extension}', @files[0].name.split('.').pop())
-
-        # substitute upload timestamp and unique_id into key
-        key_field = $.grep data, (n) ->
-          n if n.name == "key"
-
-        if key_field.length > 0
-          key_field[0].value = settings.path + key
-
-        # IE <= 9 doesn't have XHR2 hence it can't use formData
-        # replace 'key' field to submit form
-        unless 'FormData' of window
-          $uploadForm.find("input[name='key']").val(settings.path + key)
-        data
-        
-  build_content_object = ($uploadForm, file, result) ->
+              
+  build_content_object = ($uploadForm, file, result)->
     content = {}
     if result # Use the S3 response to set the URL to avoid character encodings bugs
       content.url            = $(result).find("Location").text()
@@ -106,24 +38,99 @@ $.fn.S3Uploader = (options) ->
     content = $.extend content, settings.additional_data if settings.additional_data
     content
 
-  has_relativePath = (file) ->
+  has_relativePath = (file)->
     file.relativePath || file.webkitRelativePath
 
-  build_relativePath = (file) ->
+  build_relativePath = (file)->
     file.relativePath || (file.webkitRelativePath.split("/")[0..-2].join("/") + "/" if file.webkitRelativePath)
 
   #public methods
+  
+  @createRandomId = (e, data)->
+    file = data.files[0]
+    file.unique_id = Math.random().toString(36).substr(2,16)
+  
+  # here we create the means to store file upload completions
+  # in case we don't have the data ready to create the object
+  @waitOrFollowUp = (e, data)=>
+    if settings.additional_data
+      $('#log').append "<h6>sending immediately</h6>"
+      @followUp data
+    else
+      $('#log').append "<h6>storing for later</h6>"
+      waitingQueue.push data
+  @emptyQueue = ->
+    for datum in waitingQueue
+      $('#log').append "<h6>sending from queue</h6>"
+      @followUp data
+  @followUp = (data)->
+    content = build_content_object $uploadForm, data.files[0], data.result
+
+    callback_url = $uploadForm.data('callback-url')
+    if callback_url
+      content[$uploadForm.data('callback-param')] = content.url
+
+      $.ajax
+        type: $uploadForm.data('callback-method')
+        url: callback_url
+        data: content
+        beforeSend: ( xhr, settings )       ->
+          event = $.Event('ajax:beforeSend')
+          $uploadForm.trigger(event, [xhr, settings])
+          return event.result
+        complete:   ( xhr, status )         ->
+          event = $.Event('ajax:complete')
+          $uploadForm.trigger(event, [xhr, status])
+          return event.result
+        success:    ( data, status, xhr )   ->
+          event = $.Event('ajax:success')
+          $uploadForm.trigger(event, [data, status, xhr])
+          return event.result
+        error:      ( xhr, status, error )  ->
+          event = $.Event('ajax:error')
+          $uploadForm.trigger(event, [xhr, status, error])
+          return event.result
+    $uploadForm.trigger("s3_upload_complete", [content])
+
+  @formData = (form)->
+    data = form.serializeArray()
+    fileType = ""
+    if "type" of @files[0]
+      fileType = @files[0].type
+    data.push
+      name: "content-type"
+      value: fileType
+
+    key = $uploadForm.data("key")
+      .replace('{timestamp}', new Date().getTime())
+      .replace('{unique_id}', @files[0].unique_id)
+      .replace('{extension}', @files[0].name.split('.').pop())
+
+    # substitute upload timestamp and unique_id into key
+    key_field = $.grep data, (n) ->
+      n if n.name == "key"
+
+    if key_field.length > 0
+      key_field[0].value = settings.path + key
+
+    # IE <= 9 doesn't have XHR2 hence it can't use formData
+    # replace 'key' field to submit form
+    unless 'FormData' of window
+      $uploadForm.find("input[name='key']").val(settings.path + key)
+    data
+  
   @initialize = ->
     # Save key for IE9 Fix
     $uploadForm.data("key", $uploadForm.find("input[name='key']").val())
 
-    setUploadForm()
     this
 
-  @path = (new_path) ->
+  @path = (new_path)->
     settings.path = new_path
 
-  @additional_data = (new_data) ->
+  @get_additional_data = ->
+    return settings.additional_data
+  @additional_data = (new_data)->
     settings.additional_data = new_data
 
   @initialize()
