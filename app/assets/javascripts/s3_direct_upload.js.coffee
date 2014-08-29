@@ -11,8 +11,6 @@ $.fn.S3Uploader = (options) ->
 
   $uploadForm = this
   
-  waitingQueue = []
-  
   settings =
     path: ''
     additional_data: null
@@ -35,7 +33,7 @@ $.fn.S3Uploader = (options) ->
     content.filetype         = file.type if 'type' of file
     content.unique_id        = file.unique_id if 'unique_id' of file
     content.relativePath     = build_relativePath(file) if has_relativePath(file)
-    content = $.extend content, settings.additional_data if settings.additional_data
+#     content = $.extend content, settings.additional_data if settings.additional_data
     content
 
   has_relativePath = (file)->
@@ -52,19 +50,17 @@ $.fn.S3Uploader = (options) ->
   
   # here we create the means to store file upload completions
   # in case we don't have the data ready to create the object
-  @waitOrFollowUp = (e, data)=>
-    if settings.additional_data
-      $('#log').append "<h6>sending immediately</h6>"
-      @followUp data
-    else
-      $('#log').append "<h6>storing for later</h6>"
-      waitingQueue.push data
-  @emptyQueue = ->
-    for datum in waitingQueue
-      $('#log').append "<h6>sending from queue</h6>"
-      @followUp data
-  @followUp = (data)->
-    content = build_content_object $uploadForm, data.files[0], data.result
+  @getAugmentedFile = (data) ->
+    fileList = data.files
+    content = build_content_object $uploadForm, fileList[0], data.result
+    fileList[0].followUp_data = content
+    return fileList
+  
+  # here we retrieve the object created by the @getAugmentedFile method
+  # we add additional_data before sending
+  @followUp = (content)->
+#     content = build_content_object $uploadForm, data.files[0], data.result
+    content = $.extend content, settings.additional_data if settings.additional_data
 
     callback_url = $uploadForm.data('callback-url')
     if callback_url
@@ -128,8 +124,6 @@ $.fn.S3Uploader = (options) ->
   @path = (new_path)->
     settings.path = new_path
 
-  @get_additional_data = ->
-    return settings.additional_data
   @additional_data = (new_data)->
     settings.additional_data = new_data
 
